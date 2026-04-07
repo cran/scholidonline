@@ -1,0 +1,269 @@
+---
+title: "Getting started with scholidonline"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with scholidonline}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+is_pkgdown <- identical(Sys.getenv("IN_PKGDOWN"), "true")
+```
+
+`scholidonline` provides online utilities for working with scholarly
+identifiers. It builds on
+[`scholid`](https://thomas-rauter.github.io/scholid/)
+for structural detection and
+normalization, and adds registry-backed functionality such as:
+
+- Existence checks
+- Identifier conversion across systems
+- Metadata retrieval
+- Retrieval of directly linked identifiers
+
+This vignette introduces the interface and typical workflows when
+working with registry-connected identifier data.
+
+## Installation
+
+```{r installation, eval = FALSE}
+install.packages("scholidonline")
+```
+
+
+
+## Interface
+
+`scholidonline` exposes a small set of user-facing functions:
+
+- `scholidonline_types()`
+- `scholidonline_capabilities()`
+- `id_exists()`
+- `id_convert()`
+- `id_metadata()`
+- `id_links()`
+
+
+## Supported identifier types
+
+You can inspect which identifier types are supported:
+
+```{r scholidonline_types, eval = TRUE}
+scholidonline::scholidonline_types()
+```
+
+
+## Inspecting capabilities
+
+`scholidonline` is registry-driven. You can inspect all supported
+operations, conversions, and providers:
+
+```{r scholidonline capabilities, eval = TRUE}
+out <- scholidonline::scholidonline_capabilities()
+knitr::kable(out)
+```
+
+
+
+## Existence checks: `id_exists()`
+
+`id_exists()` verifies whether identifiers exist in their respective
+registries.
+
+```{r id_exists 1, eval = is_pkgdown}
+scholidonline::id_exists(
+  x    = "10.1000/182",
+  type = "doi"
+)
+```
+
+If `type = NULL`, the type is inferred automatically:
+
+```{r description, eval = is_pkgdown}
+scholidonline::id_exists(
+  x = c(
+    "10.1000/182",
+    "12345678"
+  )
+)
+```
+
+Return values:
+
+- TRUE  → confirmed by registry
+- FALSE → confirmed not found
+- NA    → cannot be classified or normalized
+
+
+
+## Conversion: `id_convert()`
+
+Many scholarly identifiers are cross-linked across systems.
+
+Common examples:
+
+- PMID → DOI
+- PMCID → PMID
+- DOI → PMCID
+
+```{r conversion 1, eval = is_pkgdown}
+scholidonline::id_convert(
+  x    = "12345678",
+  from = "pmid",
+  to   = "doi"
+)
+```
+
+If `from = NULL`, the source type is inferred per element:
+
+```{r conversion 2, eval = is_pkgdown}
+scholidonline::id_convert(
+  x = c("12345678", "PMC1234567"),
+  to = "doi"
+)
+```
+
+Unresolvable mappings return `NA_character_`.
+
+
+
+## Metadata retrieval: `id_metadata()`
+
+`id_metadata()` retrieves harmonized metadata from external registries.
+
+```{r metadata 1, eval = is_pkgdown}
+out <- scholidonline::id_metadata(
+  x    = "10.1038/nature12373",
+  type = "doi"
+)
+knitr::kable(out)
+```
+
+Metadata completeness depends on the registry.
+
+You can restrict returned fields:
+
+```{r metadata 2, eval = is_pkgdown}
+out <- scholidonline::id_metadata(
+  x = "10.1038/nature12373",
+  type = "doi",
+  fields = c("title", "year", "doi")
+)
+knitr::kable(out)
+```
+
+
+
+## Linked identifiers: `id_links()`
+
+`id_links()` returns related identifiers discovered via registry
+queries.
+
+```{r id_links 1, eval = is_pkgdown}
+out <- scholidonline::id_links(
+  x    = "PMC1234567",
+  type = "pmcid"
+)
+knitr::kable(out)
+```
+
+The result is a long data.frame with one row per link.
+
+
+
+## Working with mixed data
+
+A common workflow for messy identifier columns:
+
+1. Detect identifier types (via `scholid`)
+2. Normalize identifiers
+3. Check registry existence
+
+Example:
+
+```{r mixed data, eval = is_pkgdown}
+x <- c(
+  "https://doi.org/10.1000/182",
+  "PMCID: PMC1234567",
+  "not an id"
+)
+
+types <- scholid::detect_scholid_type(x)
+
+x_norm <- rep(NA_character_, length(x))
+
+for (i in seq_along(x)) {
+  if (is.na(types[i])) {
+    next
+  }
+
+  x_norm[i] <- scholid::normalize_scholid(
+    x = x[i],
+    type = types[i]
+  )
+}
+
+types
+x_norm
+
+scholidonline::id_exists(x)
+```
+
+
+
+## Provider selection
+
+Most functions accept a `provider` argument.
+
+```{r provider selection, eval = is_pkgdown}
+scholidonline::id_exists(
+  x        = "10.1000/182",
+  type     = "doi",
+  provider = "crossref"
+)
+
+scholidonline::id_exists(
+  x        = "10.1000/182",
+  type     = "doi",
+  provider = "doi.org"
+)
+```
+
+If `provider = "auto"` (default), a sensible registry is chosen
+automatically, potentially with fallback behavior.
+
+Available providers depend on the identifier type and operation.
+Use `scholidonline_capabilities()` to inspect them.
+
+The chosen provider affects:
+
+- Response speed
+- Metadata richness
+- Crosswalk coverage
+
+
+
+## Scope of scholidonline
+
+`scholidonline` focuses on identifiers that have:
+
+- Stable public registries
+- Accessible APIs
+- Meaningful cross-system relationships
+
+Examples:
+
+- DOI
+- PMID
+- PMCID
+- ORCID
+- arXiv
+
+Other identifiers (e.g., ISBN, ISSN) are structurally supported by
+`scholid`, but do not always have stable, open registry APIs.

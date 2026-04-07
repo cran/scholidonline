@@ -1,0 +1,92 @@
+---
+title: "Online Resolution and Registry Validation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Online Resolution and Registry Validation}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+is_pkgdown <- identical(Sys.getenv("IN_PKGDOWN"), "true")
+```
+
+# Introduction
+
+This vignette explains what it means to validate scholarly identifiers
+against external registries and how `scholidonline` relates to `scholid`.
+
+When working with identifiers programmatically, it is essential to
+distinguish between three levels of validity:
+
+- Structural validity
+- Checksum validity
+- Registry validity
+
+`scholid` operates at the structural (and, where applicable, checksum)
+level.
+
+`scholidonline` operates at the registry level.
+
+---
+
+# Structural vs Registry Validity
+
+## Structural Validity
+
+Structural validity answers:
+
+- Does this string match the formal grammar of an identifier system?
+
+Example:
+
+```{r example1, eval = TRUE}
+scholid::is_scholid(
+  "10.1000/182",
+  type = "doi"
+  )
+```
+
+Structural validation uses regular expressions and, where applicable,
+checksum algorithms (e.g., ORCID).
+
+It does **not** require internet access.
+
+It does **not** confirm existence.
+
+---
+
+## Registry Validity
+
+Registry validity answers:
+
+- Does this identifier exist in an external authority?
+
+For example:
+
+- Does this DOI resolve via doi.org or Crossref?
+- Does this PMID exist in PubMed?
+- Is this ORCID iD present in the ORCID registry?
+
+Example:
+
+```{r example2, eval = is_pkgdown}
+scholidonline::id_exists(
+  "10.1000/182",
+  type = "doi"
+  )
+```
+
+Registry validation:
+
+- Requires internet access
+- Depends on external APIs
+- May be affected by rate limits or temporary outages
+- Can change over time
+
+A structurally valid identifier may still fail registry validation.
