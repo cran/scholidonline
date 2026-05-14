@@ -81,10 +81,13 @@ id_exists <- function(
     return(out)
   }
   
+  x_ok <- x_norm[ok]
+  type_ok <- type_vec[ok]
+  
   res <- .scholidonline_run_unary(
-    x = x_norm[ok],
+    x = x_ok,
     operation = "exists",
-    type = type_vec[ok],
+    type = type_ok,
     provider = provider,
     ...,
     quiet = quiet

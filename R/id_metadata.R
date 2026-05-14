@@ -7,6 +7,10 @@
 #' @details
 #' `id_metadata()` is vectorized over `x` and returns a data.frame with one row
 #' per input identifier.
+#' 
+#' For providers that support batch lookup, such as arXiv, multiple identifiers
+#' may be resolved using a single provider request. This does not change the
+#' public return shape: the output still contains one row per input identifier.
 #'
 #' The function returns a consistent cross-provider subset of core
 #' bibliographic metadata, such as title, publication year, container title,
@@ -99,10 +103,13 @@ id_metadata <- function(
   
   if (!any(ok)) return(base_df)
   
+  x_ok <- x_norm[ok]
+  type_ok <- type_vec[ok]
+  
   res <- .scholidonline_run_unary(
-    x = x_norm[ok],
+    x = x_ok,
     operation = "meta",
-    type = type_vec[ok],
+    type = type_ok,
     provider = provider,
     ...,
     quiet = quiet

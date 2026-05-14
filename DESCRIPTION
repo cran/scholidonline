@@ -2,7 +2,7 @@ Package: scholidonline
 Type: Package
 Title: Resolution, Conversion, Linking and Metadata for Scholarly
         Identifiers
-Version: 0.1.0
+Version: 0.1.1
 Language: en-US
 Authors@R: 
     person("Thomas", "Rauter",
@@ -25,9 +25,9 @@ RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2026-04-02 08:29:42 UTC; thomasrauter
+Packaged: 2026-05-14 14:00:07 UTC; thomasrauter
 Author: Thomas Rauter [aut, cre, fnd] (ORCID:
     <https://orcid.org/0009-0004-5578-3628>)
 Maintainer: Thomas Rauter <rauterthomas0@gmail.com>
 Repository: CRAN
-Date/Publication: 2026-04-07 08:10:02 UTC
+Date/Publication: 2026-05-14 14:50:10 UTC
