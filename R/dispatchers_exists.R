@@ -146,6 +146,141 @@
 }
 
 
+#' Check whether a genome assembly accession exists
+#'
+#' @description
+#' Internal dispatcher for assembly existence checks.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.exists_assembly_<provider>()`.
+#'
+#' @param x A single, normalized assembly accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A single logical value.
+#'
+#' @noRd
+.exists_assembly <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x = x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ncbi"
+  }
+
+  switch(
+    provider,
+    ncbi = .exists_assembly_ncbi(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    stop(
+      "Unknown provider: ",
+      provider,
+      call. = FALSE
+    )
+  )
+}
+
+
+#' Check whether a BioProject accession exists
+#'
+#' @description
+#' Internal dispatcher for BioProject existence checks.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.exists_bioproject_<provider>()`.
+#'
+#' @param x A single, normalized BioProject accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A single logical value.
+#'
+#' @noRd
+.exists_bioproject <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x = x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ncbi"
+  }
+
+  switch(
+    provider,
+    ncbi = .exists_bioproject_ncbi(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    stop(
+      "Unknown provider: ",
+      provider,
+      call. = FALSE
+    )
+  )
+}
+
+
+#' Check whether a GEO accession exists
+#'
+#' @description
+#' Internal dispatcher for GEO existence checks.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.exists_geo_<provider>()`.
+#'
+#' @param x A single, normalized GEO accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A single logical value.
+#'
+#' @noRd
+.exists_geo <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x = x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ncbi"
+  }
+
+  switch(
+    provider,
+    ncbi = .exists_geo_ncbi(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    stop(
+      "Unknown provider: ",
+      provider,
+      call. = FALSE
+    )
+  )
+}
+
+
 #' Check whether an ORCID exists
 #'
 #' @description
@@ -194,6 +329,231 @@
 }
 
 
+#' Check whether an OpenAlex entity exists
+#'
+#' @description
+#' Internal dispatcher for OpenAlex existence checks.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.exists_openalex_<provider>()`.
+#'
+#' @param x A single, normalized OpenAlex key string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A single logical value.
+#'
+#' @noRd
+.exists_openalex <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x = x)
+
+  if (identical(provider, "auto")) {
+    provider <- "openalex"
+  }
+
+  switch(
+    provider,
+    openalex = .exists_openalex_openalex(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    stop(
+      "Unknown provider: ",
+      provider,
+      call. = FALSE
+    )
+  )
+}
+
+
+#' Check whether a RefSeq accession exists
+#'
+#' @description
+#' Internal dispatcher for RefSeq existence checks.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.exists_refseq_<provider>()`.
+#'
+#' @param x A single, normalized RefSeq accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A single logical value.
+#'
+#' @noRd
+.exists_refseq <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x = x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ncbi"
+  }
+
+  switch(
+    provider,
+    ncbi = .exists_refseq_ncbi(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    stop(
+      "Unknown provider: ",
+      provider,
+      call. = FALSE
+    )
+  )
+}
+
+
+#' Check whether a ROR iD exists
+#'
+#' @description
+#' Internal dispatcher for ROR existence checks.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.exists_ror_<provider>()`.
+#'
+#' @param x A single, normalized ROR iD string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A single logical value.
+#'
+#' @noRd
+.exists_ror <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x = x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ror"
+  }
+
+  switch(
+    provider,
+    ror = .exists_ror_ror(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    stop(
+      "Unknown provider: ",
+      provider,
+      call. = FALSE
+    )
+  )
+}
+
+
+#' Check whether an SRA accession exists
+#'
+#' @description
+#' Internal dispatcher for SRA existence checks.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.exists_sra_<provider>()`.
+#'
+#' @param x A single, normalized SRA accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A single logical value.
+#'
+#' @noRd
+.exists_sra <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x = x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ncbi"
+  }
+
+  switch(
+    provider,
+    ncbi = .exists_sra_ncbi(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    stop(
+      "Unknown provider: ",
+      provider,
+      call. = FALSE
+    )
+  )
+}
+
+
+#' Check whether a UniProt accession exists
+#'
+#' @description
+#' Internal dispatcher for UniProt existence checks.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.exists_uniprot_<provider>()`.
+#'
+#' @param x A single, normalized UniProt accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A single logical value.
+#'
+#' @noRd
+.exists_uniprot <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x = x)
+
+  if (identical(provider, "auto")) {
+    provider <- "uniprot"
+  }
+
+  switch(
+    provider,
+    uniprot = .exists_uniprot_uniprot(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    stop(
+      "Unknown provider: ",
+      provider,
+      call. = FALSE
+    )
+  )
+}
+
+
 #' Check whether a PMID exists
 #'
 #' @description
@@ -226,54 +586,35 @@
   )
   
   if (identical(provider, "auto")) {
-    
-    out_ncbi <- .exists_pmid_ncbi(
+    return(.dispatch_ncbi_epmc_auto(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_ncbi)) {
-      return(out_ncbi)
-    }
-    
-    out_epmc <- .exists_pmid_epmc(
-      x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_epmc)) {
-      return(out_epmc)
-    }
-    
-    if (!isTRUE(quiet)) {
-      warning(
-        "PMID existence could not be determined via NCBI or Europe PMC.",
+      ncbi_fn = .exists_pmid_ncbi,
+      epmc_fn = .exists_pmid_epmc,
+      is_success = function(out) !is.na(out),
+      empty_value = NA,
+      warn_message = paste(
+        "PMID existence could not be determined via NCBI or Europe PMC."
+      ),
+      warn_style = "base",
+      quiet = quiet,
+      ...
+    ))
+  }
+
+  .dispatch_ncbi_epmc_provider(
+    x = x,
+    provider = provider,
+    ncbi_fn = .exists_pmid_ncbi,
+    epmc_fn = .exists_pmid_epmc,
+    on_unknown = function(p) {
+      stop(
+        "Unknown provider: ",
+        p,
         call. = FALSE
       )
-    }
-    
-    return(NA)
-  }
-  
-  switch(
-    provider,
-    ncbi = .exists_pmid_ncbi(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    epmc = .exists_pmid_epmc(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    stop(
-      "Unknown provider: ",
-      provider,
-      call. = FALSE
-    )
+    },
+    quiet = quiet,
+    ...
   )
 }
 
@@ -352,54 +693,35 @@
   )
   
   if (identical(provider, "auto")) {
-    
-    out_ncbi <- .exists_pmcid_ncbi(
+    return(.dispatch_ncbi_epmc_auto(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_ncbi)) {
-      return(out_ncbi)
-    }
-    
-    out_epmc <- .exists_pmcid_epmc(
-      x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_epmc)) {
-      return(out_epmc)
-    }
-    
-    if (!isTRUE(quiet)) {
-      warning(
-        "PMCID existence could not be determined via NCBI or Europe PMC.",
+      ncbi_fn = .exists_pmcid_ncbi,
+      epmc_fn = .exists_pmcid_epmc,
+      is_success = function(out) !is.na(out),
+      empty_value = NA,
+      warn_message = paste(
+        "PMCID existence could not be determined via NCBI or Europe PMC."
+      ),
+      warn_style = "base",
+      quiet = quiet,
+      ...
+    ))
+  }
+
+  .dispatch_ncbi_epmc_provider(
+    x = x,
+    provider = provider,
+    ncbi_fn = .exists_pmcid_ncbi,
+    epmc_fn = .exists_pmcid_epmc,
+    on_unknown = function(p) {
+      stop(
+        "Unknown provider: ",
+        p,
         call. = FALSE
       )
-    }
-    
-    return(NA)
-  }
-  
-  switch(
-    provider,
-    ncbi = .exists_pmcid_ncbi(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    epmc = .exists_pmcid_epmc(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    stop(
-      "Unknown provider: ",
-      provider,
-      call. = FALSE
-    )
+    },
+    quiet = quiet,
+    ...
   )
 }
 

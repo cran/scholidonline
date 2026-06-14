@@ -1,6 +1,96 @@
 # Level 2 function (functions called by level 1 functions) ---------------------
 
 
+#' Convert an OpenAlex work to a DOI
+#'
+#' @description
+#' Internal dispatcher for converting an OpenAlex work to a DOI.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.convert_openalex_to_doi_<provider>()`.
+#'
+#' @param x A single, normalized OpenAlex work key string.
+#' @param from A single source identifier type string.
+#' @param to A single target identifier type string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A single DOI string, or `NA_character_`.
+#'
+#' @noRd
+.convert_openalex_to_doi <- function(
+    x,
+    from,
+    to,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x)
+
+  if (identical(provider, "auto")) {
+    provider <- "openalex"
+  }
+
+  switch(
+    provider,
+    openalex = .convert_openalex_to_doi_openalex(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    rlang::abort(paste0("Unknown provider: ", provider))
+  )
+}
+
+
+#' Convert an OpenAlex work to a PMID
+#'
+#' @description
+#' Internal dispatcher for converting an OpenAlex work to a PMID.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.convert_openalex_to_pmid_<provider>()`.
+#'
+#' @param x A single, normalized OpenAlex work key string.
+#' @param from A single source identifier type string.
+#' @param to A single target identifier type string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A single PMID string, or `NA_character_`.
+#'
+#' @noRd
+.convert_openalex_to_pmid <- function(
+    x,
+    from,
+    to,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x)
+
+  if (identical(provider, "auto")) {
+    provider <- "openalex"
+  }
+
+  switch(
+    provider,
+    openalex = .convert_openalex_to_pmid_openalex(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    rlang::abort(paste0("Unknown provider: ", provider))
+  )
+}
+
+
 #' Convert a PMID to a DOI
 #'
 #' @description
@@ -34,48 +124,30 @@
   .scholidonline_check_scalar_chr(x)
   
   if (identical(provider, "auto")) {
-    out_ncbi <- .convert_pmid_to_doi_ncbi(
+    return(.dispatch_ncbi_epmc_auto(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_ncbi)) {
-      return(out_ncbi)
-    }
-    
-    out_epmc <- .convert_pmid_to_doi_epmc(
-      x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_epmc)) {
-      return(out_epmc)
-    }
-    
-    if (!isTRUE(quiet)) {
-      rlang::warn(
+      ncbi_fn = .convert_pmid_to_doi_ncbi,
+      epmc_fn = .convert_pmid_to_doi_epmc,
+      is_success = function(out) !is.na(out),
+      empty_value = NA_character_,
+      warn_message = paste(
         "DOI for this PMID could not be determined via NCBI or Europe PMC."
-      )
-    }
-    
-    return(NA_character_)
+      ),
+      quiet = quiet,
+      ...
+    ))
   }
-  
-  switch(
-    provider,
-    ncbi = .convert_pmid_to_doi_ncbi(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    epmc = .convert_pmid_to_doi_epmc(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    rlang::abort(paste0("Unknown provider: ", provider))
+
+  .dispatch_ncbi_epmc_provider(
+    x = x,
+    provider = provider,
+    ncbi_fn = .convert_pmid_to_doi_ncbi,
+    epmc_fn = .convert_pmid_to_doi_epmc,
+    on_unknown = function(p) {
+      rlang::abort(paste0("Unknown provider: ", p))
+    },
+    quiet = quiet,
+    ...
   )
 }
 
@@ -109,25 +181,12 @@
   }
   
   if (identical(provider, "auto")) {
-    out <- .convert_pmid_to_doi_ncbi_batch(
+    return(.dispatch_convert_ncbi_epmc_auto_batch(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    missing <- is.na(out)
-    
-    if (any(missing)) {
-      out[missing] <- vapply(
-        x[missing],
-        .convert_pmid_to_doi_epmc,
-        character(1),
-        ...,
-        quiet = TRUE
-      )
-    }
-    
-    return(out)
+      ncbi_batch_fn = .convert_pmid_to_doi_ncbi_batch,
+      epmc_fn = .convert_pmid_to_doi_epmc,
+      ...
+    ))
   }
   
   switch(
@@ -175,48 +234,30 @@
   .scholidonline_check_scalar_chr(x)
   
   if (identical(provider, "auto")) {
-    out_ncbi <- .convert_doi_to_pmid_ncbi(
+    return(.dispatch_ncbi_epmc_auto(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_ncbi)) {
-      return(out_ncbi)
-    }
-    
-    out_epmc <- .convert_doi_to_pmid_epmc(
-      x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_epmc)) {
-      return(out_epmc)
-    }
-    
-    if (!isTRUE(quiet)) {
-      rlang::warn(
+      ncbi_fn = .convert_doi_to_pmid_ncbi,
+      epmc_fn = .convert_doi_to_pmid_epmc,
+      is_success = function(out) !is.na(out),
+      empty_value = NA_character_,
+      warn_message = paste(
         "PMID for this DOI could not be determined via NCBI or Europe PMC."
-      )
-    }
-    
-    return(NA_character_)
+      ),
+      quiet = quiet,
+      ...
+    ))
   }
-  
-  switch(
-    provider,
-    ncbi = .convert_doi_to_pmid_ncbi(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    epmc = .convert_doi_to_pmid_epmc(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    rlang::abort(paste0("Unknown provider: ", provider))
+
+  .dispatch_ncbi_epmc_provider(
+    x = x,
+    provider = provider,
+    ncbi_fn = .convert_doi_to_pmid_ncbi,
+    epmc_fn = .convert_doi_to_pmid_epmc,
+    on_unknown = function(p) {
+      rlang::abort(paste0("Unknown provider: ", p))
+    },
+    quiet = quiet,
+    ...
   )
 }
 
@@ -250,25 +291,12 @@
   }
   
   if (identical(provider, "auto")) {
-    out <- .convert_doi_to_pmid_ncbi_batch(
+    return(.dispatch_convert_ncbi_epmc_auto_batch(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    missing <- is.na(out)
-    
-    if (any(missing)) {
-      out[missing] <- vapply(
-        x[missing],
-        .convert_doi_to_pmid_epmc,
-        character(1),
-        ...,
-        quiet = TRUE
-      )
-    }
-    
-    return(out)
+      ncbi_batch_fn = .convert_doi_to_pmid_ncbi_batch,
+      epmc_fn = .convert_doi_to_pmid_epmc,
+      ...
+    ))
   }
   
   switch(
@@ -316,48 +344,30 @@
   .scholidonline_check_scalar_chr(x)
   
   if (identical(provider, "auto")) {
-    out_ncbi <- .convert_pmcid_to_pmid_ncbi(
+    return(.dispatch_ncbi_epmc_auto(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_ncbi)) {
-      return(out_ncbi)
-    }
-    
-    out_epmc <- .convert_pmcid_to_pmid_epmc(
-      x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_epmc)) {
-      return(out_epmc)
-    }
-    
-    if (!isTRUE(quiet)) {
-      rlang::warn(
+      ncbi_fn = .convert_pmcid_to_pmid_ncbi,
+      epmc_fn = .convert_pmcid_to_pmid_epmc,
+      is_success = function(out) !is.na(out),
+      empty_value = NA_character_,
+      warn_message = paste(
         "PMID for this PMCID could not be determined via NCBI or Europe PMC."
-      )
-    }
-    
-    return(NA_character_)
+      ),
+      quiet = quiet,
+      ...
+    ))
   }
-  
-  switch(
-    provider,
-    ncbi = .convert_pmcid_to_pmid_ncbi(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    epmc = .convert_pmcid_to_pmid_epmc(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    rlang::abort(paste0("Unknown provider: ", provider))
+
+  .dispatch_ncbi_epmc_provider(
+    x = x,
+    provider = provider,
+    ncbi_fn = .convert_pmcid_to_pmid_ncbi,
+    epmc_fn = .convert_pmcid_to_pmid_epmc,
+    on_unknown = function(p) {
+      rlang::abort(paste0("Unknown provider: ", p))
+    },
+    quiet = quiet,
+    ...
   )
 }
 
@@ -395,48 +405,30 @@
   .scholidonline_check_scalar_chr(x)
   
   if (identical(provider, "auto")) {
-    out_ncbi <- .convert_pmcid_to_doi_ncbi(
+    return(.dispatch_ncbi_epmc_auto(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_ncbi)) {
-      return(out_ncbi)
-    }
-    
-    out_epmc <- .convert_pmcid_to_doi_epmc(
-      x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_epmc)) {
-      return(out_epmc)
-    }
-    
-    if (!isTRUE(quiet)) {
-      rlang::warn(
+      ncbi_fn = .convert_pmcid_to_doi_ncbi,
+      epmc_fn = .convert_pmcid_to_doi_epmc,
+      is_success = function(out) !is.na(out),
+      empty_value = NA_character_,
+      warn_message = paste(
         "DOI for this PMCID could not be determined via NCBI or Europe PMC."
-      )
-    }
-    
-    return(NA_character_)
+      ),
+      quiet = quiet,
+      ...
+    ))
   }
-  
-  switch(
-    provider,
-    ncbi = .convert_pmcid_to_doi_ncbi(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    epmc = .convert_pmcid_to_doi_epmc(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    rlang::abort(paste0("Unknown provider: ", provider))
+
+  .dispatch_ncbi_epmc_provider(
+    x = x,
+    provider = provider,
+    ncbi_fn = .convert_pmcid_to_doi_ncbi,
+    epmc_fn = .convert_pmcid_to_doi_epmc,
+    on_unknown = function(p) {
+      rlang::abort(paste0("Unknown provider: ", p))
+    },
+    quiet = quiet,
+    ...
   )
 }
 
@@ -474,48 +466,30 @@
   .scholidonline_check_scalar_chr(x)
   
   if (identical(provider, "auto")) {
-    out_ncbi <- .convert_pmid_to_pmcid_ncbi(
+    return(.dispatch_ncbi_epmc_auto(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_ncbi)) {
-      return(out_ncbi)
-    }
-    
-    out_epmc <- .convert_pmid_to_pmcid_epmc(
-      x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_epmc)) {
-      return(out_epmc)
-    }
-    
-    if (!isTRUE(quiet)) {
-      rlang::warn(
+      ncbi_fn = .convert_pmid_to_pmcid_ncbi,
+      epmc_fn = .convert_pmid_to_pmcid_epmc,
+      is_success = function(out) !is.na(out),
+      empty_value = NA_character_,
+      warn_message = paste(
         "PMCID for this PMID could not be determined via NCBI or Europe PMC."
-      )
-    }
-    
-    return(NA_character_)
+      ),
+      quiet = quiet,
+      ...
+    ))
   }
-  
-  switch(
-    provider,
-    ncbi = .convert_pmid_to_pmcid_ncbi(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    epmc = .convert_pmid_to_pmcid_epmc(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    rlang::abort(paste0("Unknown provider: ", provider))
+
+  .dispatch_ncbi_epmc_provider(
+    x = x,
+    provider = provider,
+    ncbi_fn = .convert_pmid_to_pmcid_ncbi,
+    epmc_fn = .convert_pmid_to_pmcid_epmc,
+    on_unknown = function(p) {
+      rlang::abort(paste0("Unknown provider: ", p))
+    },
+    quiet = quiet,
+    ...
   )
 }
 
@@ -553,48 +527,30 @@
   .scholidonline_check_scalar_chr(x)
   
   if (identical(provider, "auto")) {
-    out_ncbi <- .convert_doi_to_pmcid_ncbi(
+    return(.dispatch_ncbi_epmc_auto(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_ncbi)) {
-      return(out_ncbi)
-    }
-    
-    out_epmc <- .convert_doi_to_pmcid_epmc(
-      x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.na(out_epmc)) {
-      return(out_epmc)
-    }
-    
-    if (!isTRUE(quiet)) {
-      rlang::warn(
+      ncbi_fn = .convert_doi_to_pmcid_ncbi,
+      epmc_fn = .convert_doi_to_pmcid_epmc,
+      is_success = function(out) !is.na(out),
+      empty_value = NA_character_,
+      warn_message = paste(
         "PMCID for this DOI could not be determined via NCBI or Europe PMC."
-      )
-    }
-    
-    return(NA_character_)
+      ),
+      quiet = quiet,
+      ...
+    ))
   }
-  
-  switch(
-    provider,
-    ncbi = .convert_doi_to_pmcid_ncbi(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    epmc = .convert_doi_to_pmcid_epmc(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    rlang::abort(paste0("Unknown provider: ", provider))
+
+  .dispatch_ncbi_epmc_provider(
+    x = x,
+    provider = provider,
+    ncbi_fn = .convert_doi_to_pmcid_ncbi,
+    epmc_fn = .convert_doi_to_pmcid_epmc,
+    on_unknown = function(p) {
+      rlang::abort(paste0("Unknown provider: ", p))
+    },
+    quiet = quiet,
+    ...
   )
 }
 
@@ -628,25 +584,12 @@
   }
   
   if (identical(provider, "auto")) {
-    out <- .convert_pmid_to_pmcid_ncbi_batch(
+    return(.dispatch_convert_ncbi_epmc_auto_batch(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    missing <- is.na(out)
-    
-    if (any(missing)) {
-      out[missing] <- vapply(
-        x[missing],
-        .convert_pmid_to_pmcid_epmc,
-        character(1),
-        ...,
-        quiet = TRUE
-      )
-    }
-    
-    return(out)
+      ncbi_batch_fn = .convert_pmid_to_pmcid_ncbi_batch,
+      epmc_fn = .convert_pmid_to_pmcid_epmc,
+      ...
+    ))
   }
   
   switch(
@@ -690,25 +633,12 @@
   }
   
   if (identical(provider, "auto")) {
-    out <- .convert_pmcid_to_pmid_ncbi_batch(
+    return(.dispatch_convert_ncbi_epmc_auto_batch(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    missing <- is.na(out)
-    
-    if (any(missing)) {
-      out[missing] <- vapply(
-        x[missing],
-        .convert_pmcid_to_pmid_epmc,
-        character(1),
-        ...,
-        quiet = TRUE
-      )
-    }
-    
-    return(out)
+      ncbi_batch_fn = .convert_pmcid_to_pmid_ncbi_batch,
+      epmc_fn = .convert_pmcid_to_pmid_epmc,
+      ...
+    ))
   }
   
   switch(
@@ -752,25 +682,12 @@
   }
   
   if (identical(provider, "auto")) {
-    out <- .convert_pmcid_to_doi_ncbi_batch(
+    return(.dispatch_convert_ncbi_epmc_auto_batch(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    missing <- is.na(out)
-    
-    if (any(missing)) {
-      out[missing] <- vapply(
-        x[missing],
-        .convert_pmcid_to_doi_epmc,
-        character(1),
-        ...,
-        quiet = TRUE
-      )
-    }
-    
-    return(out)
+      ncbi_batch_fn = .convert_pmcid_to_doi_ncbi_batch,
+      epmc_fn = .convert_pmcid_to_doi_epmc,
+      ...
+    ))
   }
   
   switch(
@@ -814,25 +731,12 @@
   }
   
   if (identical(provider, "auto")) {
-    out <- .convert_doi_to_pmcid_ncbi_batch(
+    return(.dispatch_convert_ncbi_epmc_auto_batch(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    missing <- is.na(out)
-    
-    if (any(missing)) {
-      out[missing] <- vapply(
-        x[missing],
-        .convert_doi_to_pmcid_epmc,
-        character(1),
-        ...,
-        quiet = TRUE
-      )
-    }
-    
-    return(out)
+      ncbi_batch_fn = .convert_doi_to_pmcid_ncbi_batch,
+      epmc_fn = .convert_doi_to_pmcid_epmc,
+      ...
+    ))
   }
   
   switch(

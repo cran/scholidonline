@@ -18,6 +18,12 @@ regexes
 Unhyphenated
 arXiv
 Crossref
+GEO
+RefSeq
+SRA
+UniProt
+OpenAlex
+ROR
 crossref
 pmcid
 pmid
@@ -30,3 +36,9 @@ Nanometre
 Unresolvable
 epmc
 PMC
+bibcode
+BioProject
+Entrez
+ESummary
+RRID
+UniProtKB

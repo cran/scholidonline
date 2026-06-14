@@ -52,14 +52,8 @@
 #' Lookup allowed providers for a conversion pair
 #'
 #' @description
-#' Internal helper used by the scholidonline engine to determine the set of
-#' supported providers for a given identifier conversion.
-#'
-#' This helper returns the providers that implement a conversion from `from`
-#' to `to`, including `"auto"` where applicable. The mapping is defined
-#' explicitly and reflects the currently supported provider implementations.
-#'
-#' If the conversion pair is not supported, a descriptive error is thrown.
+#' Internal helper that returns the providers registered for a conversion
+#' from `from` to `to`, including `"auto"` where applicable.
 #'
 #' @param from A single source identifier type string.
 #' @param to A single target identifier type string.
@@ -71,20 +65,21 @@
     from,
     to
 ) {
-  key <- paste(from, to, sep = "->")
-  
-  providers <- switch(
-    key,
-    "pmid->doi"   = c("auto", "ncbi", "epmc", "mock"),
-    "doi->pmid"   = c("auto", "ncbi", "epmc", "mock"),
-    "doi->pmcid"  = c("auto", "ncbi", "epmc", "mock"),
-    "pmcid->pmid" = c("auto", "ncbi", "epmc", "mock"),
-    "pmcid->doi"  = c("auto", "ncbi", "epmc", "mock"),
-    "pmid->pmcid" = c("auto", "ncbi", "epmc", "mock"),
-    stop("Unsupported conversion: ", from, " -> ", to, ".", call. = FALSE)
-  )
-  
-  providers
+  reg <- .scholidonline_registry()
+  meta <- reg[[from]]$convert[[to]]
+
+  if (is.null(meta)) {
+    stop(
+      "Unsupported conversion: ",
+      from,
+      " -> ",
+      to,
+      ".",
+      call. = FALSE
+    )
+  }
+
+  meta$providers
 }
 
 
@@ -340,52 +335,80 @@
 }
 
 
-# Level 2 function (functions called by lvl 1 functions) definitions -----------
-
-
-#' Coerce input to a single trimmed character value
+#' Prepare normalized identifier inputs for engine dispatch
 #'
 #' @description
-#' Internal helper for validating scalar character arguments. Factors are
-#' converted to character, whitespace is trimmed, and empty strings are
-#' converted to `NA_character_`. Errors are thrown for missing, `NULL`,
-#' non-scalar, or non-character inputs.
+#' Internal helper that resolves identifier types, normalizes inputs, and
+#' returns a mask of usable elements for unary and binary front-end functions.
 #'
-#' @param x An input value expected to be a scalar character.
-#' @param arg Name of the argument, used in error messages.
+#' @param x A character vector of identifiers.
+#' @param type A single identifier type string, or `"auto"` to infer the type
+#'   for each element of `x`.
+#' @param to An optional single target identifier type string. When non-`NULL`
+#'   and `type = "auto"`, inferred source types are restricted to values that
+#'   can be converted to `to`.
 #'
-#' @return A length-one character vector, or `NA_character_` if the input
-#'   is an empty string.
+#' @return A list with elements `type_vec`, `x_norm`, `ok`, and `ok_idx`.
 #'
 #' @noRd
-.scholidonline_as_scalar_character <- function(
-        x,
-        arg
+.scholidonline_prepare_inputs <- function(
+    x,
+    type = "auto",
+    to = NULL
 ) {
-    if (missing(x)) {
-        stop("`", arg, "` is required.", call. = FALSE)
+  n <- length(x)
+
+  if (!is.null(to) && identical(type, "auto")) {
+    type_vec <- scholid::detect_scholid_type(x = x)
+    type_vec[!type_vec %in% scholidonline_types()] <- NA_character_
+
+    type_vec[!vapply(
+      type_vec,
+      FUN = function(f) {
+        if (is.na(f)) {
+          return(FALSE)
+        }
+
+        if (identical(f, to)) {
+          return(TRUE)
+        }
+
+        !is.null(.scholidonline_registry()[[f]]$convert[[to]])
+      },
+      FUN.VALUE = logical(1)
+    )] <- NA_character_
+  } else if (identical(type, "auto")) {
+    type_vec <- scholid::detect_scholid_type(x = x)
+    type_vec[!type_vec %in% scholidonline_types()] <- NA_character_
+  } else {
+    type_vec <- rep(
+      x = type,
+      times = n
+    )
+  }
+
+  x_norm <- rep(
+    x = NA_character_,
+    times = n
+  )
+
+  for (i in seq_len(n)) {
+    if (is.na(x[i]) || is.na(type_vec[i])) {
+      next
     }
 
-    if (is.null(x)) {
-        stop("`", arg, "` must not be NULL.", call. = FALSE)
-    }
+    x_norm[i] <- scholid::normalize_scholid(
+      x = x[i],
+      type = type_vec[i]
+    )
+  }
 
-    if (length(x) != 1L) {
-        stop("`", arg, "` must be length 1.", call. = FALSE)
-    }
+  ok <- !is.na(x_norm) & !is.na(type_vec)
 
-    if (is.factor(x)) {
-        x <- as.character(x)
-    }
-
-    if (!is.character(x)) {
-        stop("`", arg, "` must be a character string.", call. = FALSE)
-    }
-
-    x <- trimws(x)
-    if (!nzchar(x)) {
-        return(NA_character_)
-    }
-
-    x
+  list(
+    type_vec = type_vec,
+    x_norm = x_norm,
+    ok = ok,
+    ok_idx = which(ok)
+  )
 }

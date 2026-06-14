@@ -69,6 +69,15 @@ out <- scholidonline::scholidonline_capabilities()
 knitr::kable(out)
 ```
 
+Not every supported type offers every operation. For example, ROR and
+UniProt support existence checks and metadata, while DOI and PMID also
+support linked identifiers and conversion. To inspect one type:
+
+```{r capabilities by type, eval = TRUE}
+out <- scholidonline::scholidonline_capabilities()
+knitr::kable(subset(out, type == "openalex"))
+```
+
 
 
 ## Existence checks: `id_exists()`
@@ -145,7 +154,10 @@ out <- scholidonline::id_metadata(
 knitr::kable(out)
 ```
 
-Metadata completeness depends on the registry.
+Metadata completeness depends on the registry. For NCBI accession types such
+as BioProject, `title` is the short registry title from Entrez ESummary, not
+the full project description on the NCBI website; use `url` for the complete
+record.
 
 You can restrict returned fields:
 
@@ -163,7 +175,8 @@ knitr::kable(out)
 ## Linked identifiers: `id_links()`
 
 `id_links()` returns related identifiers discovered via registry
-queries.
+queries. Returns an empty table when the provider exposes no linked
+identifiers for that record.
 
 ```{r id_links 1, eval = is_pkgdown}
 out <- scholidonline::id_links(
@@ -173,7 +186,8 @@ out <- scholidonline::id_links(
 knitr::kable(out)
 ```
 
-The result is a long data.frame with one row per link.
+The result is a long data.frame with one row per link. When no links are
+found, the same columns are returned with zero rows.
 
 
 
@@ -211,7 +225,13 @@ for (i in seq_along(x)) {
 
 types
 x_norm
+```
 
+`id_exists(x)` below uses the default `type = "auto"`, so each element is
+classified and normalized automatically. You do not need to pass a vector
+`type` argument.
+
+```{r mixed data exists, eval = is_pkgdown}
 scholidonline::id_exists(x)
 ```
 
@@ -251,19 +271,20 @@ The chosen provider affects:
 
 ## Scope of scholidonline
 
-`scholidonline` focuses on identifiers that have:
+`scholidonline` focuses on identifier types with stable public registries and
+accessible APIs. The package supports online operations for:
 
-- Stable public registries
-- Accessible APIs
-- Meaningful cross-system relationships
+- **Bibliographic core:** DOI, PMID, PMCID, arXiv
+- **Graph and people:** OpenAlex, ORCID
+- **Organizations:** ROR
+- **Life science:** UniProt; NCBI accessions (GEO, BioProject, RefSeq, SRA,
+  genome assembly)
 
-Examples:
+Not every type supports every operation. For example, ROR and UniProt support
+existence checks and metadata, while DOI and PMID additionally support linked
+identifiers and conversion. Use `scholidonline_capabilities()` as the
+authoritative summary.
 
-- DOI
-- PMID
-- PMCID
-- ORCID
-- arXiv
-
-Other identifiers (e.g., ISBN, ISSN) are structurally supported by
-`scholid`, but do not always have stable, open registry APIs.
+Many other identifier types (e.g., ISBN, ISSN, bibcode, RRID) are
+structurally supported by `scholid`, but are not covered by `scholidonline`
+because they lack a stable, open registry API fit for this package.

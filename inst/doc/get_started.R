@@ -16,6 +16,10 @@ scholidonline::scholidonline_types()
 out <- scholidonline::scholidonline_capabilities()
 knitr::kable(out)
 
+## ----capabilities by type, eval = TRUE----------------------------------------
+out <- scholidonline::scholidonline_capabilities()
+knitr::kable(subset(out, type == "openalex"))
+
 ## ----id_exists 1, eval = is_pkgdown-------------------------------------------
 # scholidonline::id_exists(
 #   x    = "10.1000/182",
@@ -89,7 +93,8 @@ knitr::kable(out)
 # 
 # types
 # x_norm
-# 
+
+## ----mixed data exists, eval = is_pkgdown-------------------------------------
 # scholidonline::id_exists(x)
 
 ## ----provider selection, eval = is_pkgdown------------------------------------

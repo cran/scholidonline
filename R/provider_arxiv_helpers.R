@@ -1,90 +1,3 @@
-#' arXiv: internal state for request throttling
-#'
-#' @description
-#' Internal environment used to store the timestamp of the most recent arXiv
-#' request made through the package.
-#'
-#' @noRd
-.scholidonline_arxiv_state <- new.env(parent = emptyenv())
-
-
-#' arXiv: throttle repeated requests
-#'
-#' @description
-#' Waits before a repeated arXiv request when the previous request was made
-#' less than `min_interval` seconds ago. The first request does not wait.
-#'
-#' Throttling can be disabled globally with
-#' `options(scholidonline.rate_limit = FALSE)`.
-#'
-#' @param min_interval A single numeric value giving the minimum number of
-#'   seconds between arXiv requests.
-#' @param quiet Logical.
-#'
-#' @return Invisibly returns `NULL`.
-#'
-#' @noRd
-.arxiv_rate_limit <- function(
-    min_interval = getOption("scholidonline.arxiv.min_interval", 3),
-    quiet = FALSE
-) {
-  if (!isTRUE(getOption("scholidonline.rate_limit", TRUE))) {
-    return(invisible(NULL))
-  }
-  
-  if (!is.numeric(min_interval) || length(min_interval) != 1L) {
-    stop("`min_interval` must be a single numeric value.", call. = FALSE)
-  }
-  
-  if (is.na(min_interval) || min_interval <= 0) {
-    return(invisible(NULL))
-  }
-  
-  last <- .scholidonline_arxiv_state$last_request_time
-  
-  if (!is.null(last)) {
-    elapsed <- as.numeric(difftime(Sys.time(), last, units = "secs"))
-    wait <- min_interval - elapsed
-    
-    if (is.finite(wait) && wait > 0) {
-      if (
-        !isTRUE(quiet) &&
-        isTRUE(getOption("scholidonline.rate_limit.verbose", FALSE))
-      ) {
-        rlang::inform(
-          paste0(
-            "Waiting ",
-            round(wait, 2),
-            " seconds before the next arXiv request."
-          )
-        )
-      }
-      
-      Sys.sleep(wait)
-    }
-  }
-  
-  .scholidonline_arxiv_state$last_request_time <- Sys.time()
-  
-  invisible(NULL)
-}
-
-
-#' arXiv: reset request throttling state
-#'
-#' @description
-#' Clears the stored timestamp of the most recent arXiv request. This helper is
-#' intended for tests and internal diagnostics.
-#'
-#' @return Invisibly returns `NULL`.
-#'
-#' @noRd
-.arxiv_rate_limit_reset <- function() {
-  .scholidonline_arxiv_state$last_request_time <- NULL
-  invisible(NULL)
-}
-
-
 #' arXiv: construct an API URL for an identifier list
 #'
 #' @param x A character vector of normalized arXiv identifiers.
@@ -145,39 +58,55 @@
   }
   
   url <- .arxiv_id_list_url(x = x)
-  
-  req <- .scholidonline_request(url)
-  
-  req <- .scholidonline_req_error(
-    req = req,
-    is_error = function(resp) FALSE
-  )
-  
-  .arxiv_rate_limit(quiet = quiet)
-  
-  resp <- .scholidonline_req_perform_safe(req = req)
-  
-  if (is.null(resp)) {
-    if (!isTRUE(quiet)) {
-      rlang::warn("arXiv request failed.")
-    }
-    return(NULL)
-  }
-  
-  status <- .scholidonline_resp_status(resp = resp)
-  
-  if (!(status >= 200L && status < 300L)) {
-    if (!isTRUE(quiet)) {
-      rlang::warn(
-        paste0("arXiv request returned HTTP ", status, ".")
+  max_attempts <- 2L
+  attempt <- 1L
+  resp <- NULL
+
+  repeat {
+    resp <- .scholidonline_http_get(
+      url = url,
+      quiet = quiet,
+      before_request = function() {
+        .arxiv_rate_limit(quiet = quiet)
+      }
+    )
+
+    if (is.null(resp)) {
+      .scholidonline_http_warn_failed(
+        provider_label = "arXiv",
+        quiet = quiet
       )
+      return(NULL)
     }
-    return(NULL)
+
+    status <- .scholidonline_resp_status(resp = resp)
+
+    if (status >= 200L && status < 300L) {
+      break
+    }
+
+    if (status == 429L && attempt < max_attempts) {
+      if (!isTRUE(quiet)) {
+        rlang::warn("arXiv request rate-limited (HTTP 429); retrying once.")
+      }
+      attempt <- attempt + 1L
+      Sys.sleep(1)
+      next
+    }
+
+    return(
+      .scholidonline_http_string_from_response(
+        resp = resp,
+        quiet = quiet,
+        provider_label = "arXiv"
+      )
+    )
   }
-  
-  tryCatch(
-    .scholidonline_resp_body_string(resp = resp),
-    error = function(e) NULL
+
+  .scholidonline_http_string_from_response(
+    resp = resp,
+    quiet = quiet,
+    provider_label = "arXiv"
   )
 }
 

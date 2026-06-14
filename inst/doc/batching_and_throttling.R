@@ -62,3 +62,6 @@ options(scholidonline.ncbi.min_interval = 0.34)
 ## ----PMC throttling, eval = TRUE----------------------------------------------
 options(scholidonline.epmc.min_interval = 1)
 
+## ----openalex mailto, eval = TRUE---------------------------------------------
+options(scholidonline.openalex.mailto = "you@example.org")
+

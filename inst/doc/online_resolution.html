@@ -390,6 +390,11 @@ checksum algorithms (e.g., ORCID).</p>
 <li>Does this DOI resolve via doi.org or Crossref?</li>
 <li>Does this PMID exist in PubMed?</li>
 <li>Is this ORCID iD present in the ORCID registry?</li>
+<li>Does this OpenAlex work or ROR organization record resolve via its
+API?</li>
+<li>Does this UniProt accession exist in UniProtKB?</li>
+<li>Do NCBI accessions such as GEO, BioProject, RefSeq, SRA, or genome
+assembly records resolve via Entrez?</li>
 </ul>
 <p>Example:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>scholidonline<span class="sc">::</span><span class="fu">id_exists</span>(</span>
@@ -405,7 +410,22 @@ checksum algorithms (e.g., ORCID).</p>
 </ul>
 <p>A structurally valid identifier may still fail registry
 validation.</p>
+<hr />
 </div>
+</div>
+<div id="relationship-to-scholid" class="section level1">
+<h1>Relationship to scholid</h1>
+<p><a href="https://thomas-rauter.github.io/scholid/"><code>scholid</code></a>
+classifies and normalizes identifier strings offline.
+<code>scholidonline</code> then queries external registries for types
+that have online support.</p>
+<p>Identifiers must be classified and normalized with
+<code>scholid</code> before registry lookup in
+<code>scholidonline</code>. Structural validation in
+<code>scholid</code> does not imply registry support in
+<code>scholidonline</code>; use <code>scholidonline_types()</code> and
+<code>scholidonline_capabilities()</code> to see which types and
+operations are available online.</p>
 </div>
 
 

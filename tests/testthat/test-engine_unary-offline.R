@@ -119,70 +119,6 @@ testthat::test_that(
 
 
 testthat::test_that(
-  ".scholidonline_resolve_unary_provider() validates inputs", {
-  meta <- list(
-    providers = c("auto", "ncbi", "epmc"),
-    default_provider = "ncbi",
-    dispatcher = ".exists_pmid"
-  )
-  
-  testthat::expect_identical(
-    .scholidonline_resolve_unary_provider("auto", meta),
-    "auto"
-  )
-  
-  testthat::expect_identical(
-    .scholidonline_resolve_unary_provider("ncbi", meta),
-    "ncbi"
-  )
-  
-  testthat::expect_error(
-    .scholidonline_resolve_unary_provider(
-      provider = c("ncbi", "epmc"),
-      meta = meta
-    ),
-    "`provider` must be a single, non-missing character string\\."
-  )
-  
-  testthat::expect_error(
-    .scholidonline_resolve_unary_provider(
-      provider = NA_character_,
-      meta = meta
-    ),
-    "`provider` must be a single, non-missing character string\\."
-  )
-  
-  testthat::expect_error(
-    .scholidonline_resolve_unary_provider(
-      provider = "crossref",
-      meta = meta
-    ),
-    "Provider `crossref` is not supported for this identifier type\\."
-  )
-})
-
-
-testthat::test_that(
-  ".scholidonline_resolve_unary_provider() checks meta structure", {
-  testthat::expect_error(
-    .scholidonline_resolve_unary_provider(
-      provider = "auto",
-      meta = "not_a_list"
-    ),
-    "`meta` must be a list\\."
-  )
-  
-  testthat::expect_error(
-    .scholidonline_resolve_unary_provider(
-      provider = "auto",
-      meta = list(default_provider = "ncbi")
-    ),
-    "`meta` must contain `providers`\\."
-  )
-})
-
-
-testthat::test_that(
   ".scholidonline_unary_return_mode() maps known operations", {
   testthat::expect_identical(
     .scholidonline_unary_return_mode("exists"),
@@ -293,6 +229,21 @@ testthat::test_that(
 
 
 testthat::test_that(
+  ".validate_unary_batch_result() rejects batch outputs with wrong length",
+  {
+    testthat::expect_error(
+      .validate_unary_batch_result(
+        x = list(TRUE),
+        operation = "exists",
+        n = 2L
+      ),
+      "Unary batch dispatcher output must have length `length\\(x\\)`\\."
+    )
+  }
+)
+
+
+testthat::test_that(
   ".scholidonline_run_unary_one() calls dispatcher and validates exists", {
   dispatcher <- function(x, provider, ..., quiet) {
     testthat::expect_identical(x, "12345")
@@ -362,12 +313,12 @@ testthat::test_that(
           dispatcher = ".exists_pmid"
         )
       },
-      .scholidonline_resolve_unary_provider = function(provider, meta) {
+      .scholidonline_resolve_provider = function(provider, meta) {
         testthat::expect_identical(provider, "auto")
         testthat::expect_true(is.list(meta))
         "auto"
       },
-      .get_unary_batch_dispatcher = function(meta) {
+      .scholidonline_get_batch_dispatcher = function(meta) {
         NULL
       },
       .scholidonline_get_dispatcher = function(name) {
@@ -419,7 +370,7 @@ testthat::test_that(
         dispatcher = paste0(".dispatch_", type, "_", operation)
       )
     },
-    .scholidonline_resolve_unary_provider = function(provider, meta) {
+    .scholidonline_resolve_provider = function(provider, meta) {
       "stub"
     },
     .scholidonline_get_dispatcher = function(name) {
@@ -488,7 +439,7 @@ testthat::test_that(
         dispatcher = ".stub"
       )
     },
-    .scholidonline_resolve_unary_provider = function(provider, meta) {
+    .scholidonline_resolve_provider = function(provider, meta) {
       called <<- TRUE
       "stub"
     },
@@ -535,7 +486,7 @@ testthat::test_that(
         dispatcher = ".stub"
       )
     },
-    .scholidonline_resolve_unary_provider = function(provider, meta) {
+    .scholidonline_resolve_provider = function(provider, meta) {
       called <<- TRUE
       "stub"
     },

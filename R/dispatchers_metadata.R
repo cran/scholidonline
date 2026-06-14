@@ -49,6 +49,129 @@
 }
 
 
+#' Return metadata for a genome assembly accession
+#'
+#' @description
+#' Internal dispatcher for retrieving metadata for a genome assembly accession.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.meta_assembly_<provider>()`.
+#'
+#' @param x A single, normalized assembly accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A data.frame describing metadata for the assembly accession.
+#'
+#' @noRd
+.meta_assembly <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ncbi"
+  }
+
+  switch(
+    provider,
+    ncbi = .meta_assembly_ncbi(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    rlang::abort(paste0("Unknown provider: ", provider))
+  )
+}
+
+
+#' Return metadata for a BioProject accession
+#'
+#' @description
+#' Internal dispatcher for retrieving metadata for a BioProject accession.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.meta_bioproject_<provider>()`.
+#'
+#' @param x A single, normalized BioProject accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A data.frame describing metadata for the BioProject accession.
+#'
+#' @noRd
+.meta_bioproject <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ncbi"
+  }
+
+  switch(
+    provider,
+    ncbi = .meta_bioproject_ncbi(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    rlang::abort(paste0("Unknown provider: ", provider))
+  )
+}
+
+
+#' Return metadata for a GEO accession
+#'
+#' @description
+#' Internal dispatcher for retrieving metadata for a GEO accession.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.meta_geo_<provider>()`.
+#'
+#' @param x A single, normalized GEO accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A data.frame describing metadata for the GEO accession.
+#'
+#' @noRd
+.meta_geo <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ncbi"
+  }
+
+  switch(
+    provider,
+    ncbi = .meta_geo_ncbi(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    rlang::abort(paste0("Unknown provider: ", provider))
+  )
+}
+
+
 #' Return metadata for a PMID
 #'
 #' @description
@@ -78,49 +201,30 @@
   .scholidonline_check_scalar_chr(x)
   
   if (identical(provider, "auto")) {
-    
-    out_ncbi <- .meta_pmid_ncbi(
+    return(.dispatch_ncbi_epmc_auto(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.null(out_ncbi) && nrow(out_ncbi) > 0L) {
-      return(out_ncbi)
-    }
-    
-    out_epmc <- .meta_pmid_epmc(
-      x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.null(out_epmc) && nrow(out_epmc) > 0L) {
-      return(out_epmc)
-    }
-    
-    if (!isTRUE(quiet)) {
-      rlang::warn(
+      ncbi_fn = .meta_pmid_ncbi,
+      epmc_fn = .meta_pmid_epmc,
+      is_success = .dispatch_ncbi_epmc_df_success,
+      empty_value = data.frame(),
+      warn_message = paste(
         "Metadata for this PMID could not be retrieved via NCBI or Europe PMC."
-      )
-    }
-    
-    return(data.frame())
+      ),
+      quiet = quiet,
+      ...
+    ))
   }
-  
-  switch(
-    provider,
-    ncbi = .meta_pmid_ncbi(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    epmc = .meta_pmid_epmc(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    rlang::abort(paste0("Unknown provider: ", provider))
+
+  .dispatch_ncbi_epmc_provider(
+    x = x,
+    provider = provider,
+    ncbi_fn = .meta_pmid_ncbi,
+    epmc_fn = .meta_pmid_epmc,
+    on_unknown = function(p) {
+      rlang::abort(paste0("Unknown provider: ", p))
+    },
+    quiet = quiet,
+    ...
   )
 }
 
@@ -201,49 +305,30 @@
   .scholidonline_check_scalar_chr(x)
   
   if (identical(provider, "auto")) {
-    
-    out_ncbi <- .meta_pmcid_ncbi(
+    return(.dispatch_ncbi_epmc_auto(
       x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.null(out_ncbi) && nrow(out_ncbi) > 0L) {
-      return(out_ncbi)
-    }
-    
-    out_epmc <- .meta_pmcid_epmc(
-      x = x,
-      ...,
-      quiet = TRUE
-    )
-    
-    if (!is.null(out_epmc) && nrow(out_epmc) > 0L) {
-      return(out_epmc)
-    }
-    
-    if (!isTRUE(quiet)) {
-      rlang::warn(
+      ncbi_fn = .meta_pmcid_ncbi,
+      epmc_fn = .meta_pmcid_epmc,
+      is_success = .dispatch_ncbi_epmc_df_success,
+      empty_value = data.frame(),
+      warn_message = paste(
         "Metadata for this PMCID could not be retrieved via NCBI or Europe PMC."
-      )
-    }
-    
-    return(data.frame())
+      ),
+      quiet = quiet,
+      ...
+    ))
   }
-  
-  switch(
-    provider,
-    ncbi = .meta_pmcid_ncbi(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    epmc = .meta_pmcid_epmc(
-      x = x,
-      ...,
-      quiet = quiet
-    ),
-    rlang::abort(paste0("Unknown provider: ", provider))
+
+  .dispatch_ncbi_epmc_provider(
+    x = x,
+    provider = provider,
+    ncbi_fn = .meta_pmcid_ncbi,
+    epmc_fn = .meta_pmcid_epmc,
+    on_unknown = function(p) {
+      rlang::abort(paste0("Unknown provider: ", p))
+    },
+    quiet = quiet,
+    ...
   )
 }
 
@@ -415,6 +500,211 @@
   switch(
     provider,
     orcid = .meta_orcid_orcid(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    rlang::abort(paste0("Unknown provider: ", provider))
+  )
+}
+
+
+#' Return metadata for an OpenAlex work
+#'
+#' @description
+#' Internal dispatcher for retrieving metadata for an OpenAlex work.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.meta_openalex_<provider>()`.
+#'
+#' @param x A single, normalized OpenAlex key string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A data.frame describing metadata for the OpenAlex work.
+#'
+#' @noRd
+.meta_openalex <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x)
+
+  if (identical(provider, "auto")) {
+    provider <- "openalex"
+  }
+
+  switch(
+    provider,
+    openalex = .meta_openalex_openalex(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    rlang::abort(paste0("Unknown provider: ", provider))
+  )
+}
+
+
+#' Return metadata for a RefSeq accession
+#'
+#' @description
+#' Internal dispatcher for retrieving metadata for a RefSeq accession.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.meta_refseq_<provider>()`.
+#'
+#' @param x A single, normalized RefSeq accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A data.frame describing metadata for the RefSeq accession.
+#'
+#' @noRd
+.meta_refseq <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ncbi"
+  }
+
+  switch(
+    provider,
+    ncbi = .meta_refseq_ncbi(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    rlang::abort(paste0("Unknown provider: ", provider))
+  )
+}
+
+
+#' Return metadata for a ROR organization
+#'
+#' @description
+#' Internal dispatcher for retrieving metadata for a ROR organization.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.meta_ror_<provider>()`.
+#'
+#' @param x A single, normalized ROR iD string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A data.frame describing metadata for the ROR organization.
+#'
+#' @noRd
+.meta_ror <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ror"
+  }
+
+  switch(
+    provider,
+    ror = .meta_ror_ror(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    rlang::abort(paste0("Unknown provider: ", provider))
+  )
+}
+
+
+#' Return metadata for an SRA accession
+#'
+#' @description
+#' Internal dispatcher for retrieving metadata for an SRA accession.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.meta_sra_<provider>()`.
+#'
+#' @param x A single, normalized SRA accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A data.frame describing metadata for the SRA accession.
+#'
+#' @noRd
+.meta_sra <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x)
+
+  if (identical(provider, "auto")) {
+    provider <- "ncbi"
+  }
+
+  switch(
+    provider,
+    ncbi = .meta_sra_ncbi(
+      x = x,
+      ...,
+      quiet = quiet
+    ),
+    rlang::abort(paste0("Unknown provider: ", provider))
+  )
+}
+
+
+#' Return metadata for a UniProt entry
+#'
+#' @description
+#' Internal dispatcher for retrieving metadata for a UniProt accession.
+#'
+#' Provider-specific implementations live in helpers named
+#' `.meta_uniprot_<provider>()`.
+#'
+#' @param x A single, normalized UniProt accession string.
+#' @param provider A single provider string.
+#' @param ... Passed to provider-specific implementations.
+#' @param quiet Logical; if `TRUE`, suppress provider warnings/messages where
+#'   possible.
+#'
+#' @return A data.frame describing metadata for the UniProt entry.
+#'
+#' @noRd
+.meta_uniprot <- function(
+    x,
+    provider,
+    ...,
+    quiet = FALSE
+) {
+  .scholidonline_check_scalar_chr(x)
+
+  if (identical(provider, "auto")) {
+    provider <- "uniprot"
+  }
+
+  switch(
+    provider,
+    uniprot = .meta_uniprot_uniprot(
       x = x,
       ...,
       quiet = quiet

@@ -21,8 +21,10 @@
 #' Return the set of identifier types supported by the scholidonline package.
 #'
 #' This is the set of identifier types for which scholidonline provides
-#' registry-backed functionality, including existence checks, identifier
-#' conversion, metadata retrieval, and link discovery.
+#' registry-backed functionality. Available operations vary by type; use
+#' [scholidonline_capabilities()] to see which of existence checks,
+#' metadata retrieval, link discovery, and identifier conversion are
+#' supported for each type.
 #'
 #' @return A character vector of supported identifier type strings.
 #'
@@ -94,6 +96,20 @@ scholidonline_types <- function() {
 .scholidonline_registry <- function() {
   reg <- list(
     
+    assembly = list(
+      exists = list(
+        providers = c("auto", "ncbi"),
+        default_provider = "ncbi",
+        dispatcher = ".exists_assembly"
+      ),
+      meta = list(
+        providers = c("auto", "ncbi"),
+        default_provider = "ncbi",
+        dispatcher = ".meta_assembly"
+      ),
+      convert = list()
+    ),
+
     arxiv = list(
       exists = list(
         providers = c("auto", "arxiv"),
@@ -113,6 +129,20 @@ scholidonline_types <- function() {
       convert = list()
     ),
     
+    bioproject = list(
+      exists = list(
+        providers = c("auto", "ncbi"),
+        default_provider = "ncbi",
+        dispatcher = ".exists_bioproject"
+      ),
+      meta = list(
+        providers = c("auto", "ncbi"),
+        default_provider = "ncbi",
+        dispatcher = ".meta_bioproject"
+      ),
+      convert = list()
+    ),
+
     doi = list(
       exists = list(
         providers = c("auto", "doi.org", "crossref"),
@@ -142,6 +172,20 @@ scholidonline_types <- function() {
         )
       )
     ),
+
+    geo = list(
+      exists = list(
+        providers = c("auto", "ncbi"),
+        default_provider = "ncbi",
+        dispatcher = ".exists_geo"
+      ),
+      meta = list(
+        providers = c("auto", "ncbi"),
+        default_provider = "ncbi",
+        dispatcher = ".meta_geo"
+      ),
+      convert = list()
+    ),
     
     orcid = list(
       exists = list(
@@ -160,6 +204,36 @@ scholidonline_types <- function() {
         dispatcher = ".meta_orcid"
       ),
       convert = list()
+    ),
+
+    openalex = list(
+      exists = list(
+        providers = c("auto", "openalex"),
+        default_provider = "openalex",
+        dispatcher = ".exists_openalex"
+      ),
+      links = list(
+        providers = c("auto", "openalex"),
+        default_provider = "openalex",
+        dispatcher = ".links_openalex"
+      ),
+      meta = list(
+        providers = c("auto", "openalex"),
+        default_provider = "openalex",
+        dispatcher = ".meta_openalex"
+      ),
+      convert = list(
+        doi = list(
+          providers = c("auto", "openalex"),
+          default_provider = "openalex",
+          dispatcher = ".convert_openalex_to_doi"
+        ),
+        pmid = list(
+          providers = c("auto", "openalex"),
+          default_provider = "openalex",
+          dispatcher = ".convert_openalex_to_pmid"
+        )
+      )
     ),
     
     pmcid = list(
@@ -220,11 +294,91 @@ scholidonline_types <- function() {
           dispatcher = ".convert_pmid_to_pmcid"
         )
       )
+    ),
+
+    refseq = list(
+      exists = list(
+        providers = c("auto", "ncbi"),
+        default_provider = "ncbi",
+        dispatcher = ".exists_refseq"
+      ),
+      meta = list(
+        providers = c("auto", "ncbi"),
+        default_provider = "ncbi",
+        dispatcher = ".meta_refseq"
+      ),
+      convert = list()
+    ),
+
+    ror = list(
+      exists = list(
+        providers = c("auto", "ror"),
+        default_provider = "ror",
+        dispatcher = ".exists_ror"
+      ),
+      meta = list(
+        providers = c("auto", "ror"),
+        default_provider = "ror",
+        dispatcher = ".meta_ror"
+      ),
+      convert = list()
+    ),
+
+    sra = list(
+      exists = list(
+        providers = c("auto", "ncbi"),
+        default_provider = "ncbi",
+        dispatcher = ".exists_sra"
+      ),
+      meta = list(
+        providers = c("auto", "ncbi"),
+        default_provider = "ncbi",
+        dispatcher = ".meta_sra"
+      ),
+      convert = list()
+    ),
+
+    uniprot = list(
+      exists = list(
+        providers = c("auto", "uniprot"),
+        default_provider = "uniprot",
+        dispatcher = ".exists_uniprot"
+      ),
+      meta = list(
+        providers = c("auto", "uniprot"),
+        default_provider = "uniprot",
+        dispatcher = ".meta_uniprot"
+      ),
+      convert = list()
     )
     
   )
   
   reg[order(names(reg))]
+}
+
+
+#' Read existence-check metadata from a registry object
+#'
+#' @param type A single identifier type string.
+#' @param reg A scholidonline registry object.
+#'
+#' @return A list with `providers` and `default_provider`.
+#'
+#' @noRd
+.scholidonline_registry_exists_meta <- function(
+    type,
+    reg = .scholidonline_registry()
+) {
+  meta <- reg[[type]]$exists
+
+  if (is.null(meta)) {
+    rlang::abort(
+      paste0("Existence checking is not supported for `", type, "`.")
+    )
+  }
+
+  meta
 }
 
 
@@ -237,15 +391,32 @@ scholidonline_types <- function() {
 #' @noRd
 .scholidonline_exists_meta <- function(type) {
   type <- .scholidonline_match_type(type, arg = "type")
-  reg <- .scholidonline_registry()
-  meta <- reg[[type]]$exists
-  
+  .scholidonline_registry_exists_meta(type)
+}
+
+
+#' Read conversion metadata from a registry object
+#'
+#' @param from A single source identifier type string.
+#' @param to A single target identifier type string.
+#' @param reg A scholidonline registry object.
+#'
+#' @return A list with `providers` and `default_provider`.
+#'
+#' @noRd
+.scholidonline_registry_conversion_meta <- function(
+    from,
+    to,
+    reg = .scholidonline_registry()
+) {
+  meta <- reg[[from]]$convert[[to]]
+
   if (is.null(meta)) {
     rlang::abort(
-      paste0("Existence checking is not supported for `", type, "`.")
+      paste0("Unsupported conversion: ", from, " -> ", to, ".")
     )
   }
-  
+
   meta
 }
 
@@ -264,16 +435,7 @@ scholidonline_types <- function() {
 ) {
   from <- .scholidonline_match_type(from, arg = "from")
   to   <- .scholidonline_match_type(to, arg = "to")
-  reg <- .scholidonline_registry()
-  meta <- reg[[from]]$convert[[to]]
-  
-  if (is.null(meta)) {
-    rlang::abort(
-      paste0("Unsupported conversion: ", from, " -> ", to, ".")
-    )
-  }
-  
-  meta
+  .scholidonline_registry_conversion_meta(from, to)
 }
 
 

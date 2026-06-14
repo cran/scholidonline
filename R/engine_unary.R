@@ -92,7 +92,7 @@
       operation = operation
     )
     
-    provider_i <- .scholidonline_resolve_unary_provider(
+    provider_i <- .scholidonline_resolve_provider(
       provider = provider,
       meta = meta
     )
@@ -151,23 +151,34 @@
     rlang::abort(paste0("Unknown identifier type: ", type, "."))
   }
   
-  op_block <- type_block[[operation]]
-  
-  if (is.null(op_block)) {
-    rlang::abort(
-      paste0(
-        "Operation `",
-        operation,
-        "` not supported for type `",
-        type,
-        "`."
-      )
+  if (identical(operation, "exists")) {
+    exists_meta <- .scholidonline_registry_exists_meta(
+      type = type,
+      reg = reg
     )
+    op_block <- type_block[["exists"]]
+    providers <- exists_meta$providers
+    default_provider <- exists_meta$default_provider
+    dispatcher <- op_block$dispatcher
+  } else {
+    op_block <- type_block[[operation]]
+    
+    if (is.null(op_block)) {
+      rlang::abort(
+        paste0(
+          "Operation `",
+          operation,
+          "` not supported for type `",
+          type,
+          "`."
+        )
+      )
+    }
+    
+    providers <- op_block$providers
+    default_provider <- op_block$default_provider
+    dispatcher <- op_block$dispatcher
   }
-  
-  providers <- op_block$providers
-  default_provider <- op_block$default_provider
-  dispatcher <- op_block$dispatcher
   
   if (is.null(providers) || !length(providers)) {
     rlang::abort(
@@ -210,57 +221,6 @@
     default_provider = default_provider,
     dispatcher = dispatcher
   )
-}
-
-
-#' Resolve a provider for a unary scholidonline operation
-#'
-#' @description
-#' Internal helper used by the unary dispatch engine to validate the
-#' provider argument for a unary operation.
-#'
-#' For unary operations, `"auto"` is preserved so that dispatchers can
-#' implement operation-specific fallback behavior.
-#'
-#' @param provider A single provider string or `"auto"`.
-#' @param meta A named list of unary operation metadata.
-#'
-#' @return A single validated provider string.
-#'
-#' @noRd
-.scholidonline_resolve_unary_provider <- function(
-    provider,
-    meta
-) {
-  
-  if (!is.list(meta)) {
-    rlang::abort("`meta` must be a list.")
-  }
-  
-  if (is.null(meta$providers)) {
-    rlang::abort("`meta` must contain `providers`.")
-  }
-  
-  choices <- unique(meta$providers)
-  
-  if (!is.character(provider) || length(provider) != 1L || is.na(provider)) {
-    rlang::abort(
-      "`provider` must be a single, non-missing character string."
-    )
-  }
-  
-  if (!provider %in% choices) {
-    rlang::abort(
-      message = paste0(
-        "Provider `", provider, "` is not supported for this identifier type. ",
-        "Available providers: ",
-        paste0("`", choices, "`", collapse = ", "),
-        "."
-      )
-    )
-  }
-  
-  provider
 }
 
 
@@ -365,39 +325,6 @@
 }
 
 
-#' Get a unary batch dispatcher
-#'
-#' @description
-#' Internal helper used by the unary engine to resolve an optional batch
-#' dispatcher for a unary operation/type/provider combination.
-#'
-#' Batch dispatcher names follow the scalar dispatcher naming convention with
-#' a `_batch` suffix. For example, `.links_pmid_batch`.
-#'
-#' @param meta A named list of unary operation metadata.
-#'
-#' @return A function if a batch dispatcher exists, otherwise `NULL`.
-#'
-#' @noRd
-.get_unary_batch_dispatcher <- function(meta) {
-  if (!is.list(meta)) {
-    rlang::abort("`meta` must be a list.")
-  }
-  
-  if (is.null(meta$dispatcher)) {
-    rlang::abort("`meta` must contain `dispatcher`.")
-  }
-  
-  name <- paste0(meta$dispatcher, "_batch")
-  
-  if (!exists(name, mode = "function", inherits = TRUE)) {
-    return(NULL)
-  }
-  
-  get(name, mode = "function", inherits = TRUE)
-}
-
-
 #' Run a unary scholidonline operation in batch mode
 #'
 #' @description
@@ -452,12 +379,12 @@
     operation = operation
   )
   
-  provider_i <- .scholidonline_resolve_unary_provider(
+  provider_i <- .scholidonline_resolve_provider(
     provider = provider,
     meta = meta
   )
   
-  dispatcher <- .get_unary_batch_dispatcher(
+  dispatcher <- .scholidonline_get_batch_dispatcher(
     meta = meta
   )
   
